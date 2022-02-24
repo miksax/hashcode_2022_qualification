@@ -124,15 +124,39 @@ class Solver:
         """
         Return projects what is possible to work on
         """
-
+    
     def get_solvers(self, project: Project) -> Generator[List[Person]]:
         """
         Get sovlers what can work on project
         """
-        for person in self.get_free_people():
-            person
+        p = get_free_people()            
+        sol = []
+        def assign(k, ppl_free:List[Person], ppl_in:List[Person]):
+            nonlocal sol
+            nonlocal project
+            if( k==len(project.roles) ):
+                sol.append(ppl_in)
+                return
 
-        return []
+            role = project.roles[k]
+            mentor = False
+            for x in ppl_in:
+                for r in x.roles:
+                    if r.name==role.name and r.level>role.level:
+                        mentor=True
+
+            for x in ppl_free:
+                r:Role=None
+                for y in x.roles:
+                    if r.name==role.name:
+                        r=y
+                if r==None:
+                    continue
+                if r.level>=role.level or r.level==role.leve-1 and mentor:
+                    assign(k+1, [y for y in ppl_free if y!=x], ppl_in+[x])
+
+        assign(0, p, [])
+        return sol
 
     def get_free_people(self):
         pass
