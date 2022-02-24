@@ -17,6 +17,7 @@ class Person:
 class Project:
     name: str
     duration: int
+    score: int
     best_before: int
     roles: List[Role]
 
@@ -25,6 +26,11 @@ class Progress:
     people: List[Person]
     project: Project
     start: int
+
+
+class History:
+    project: str
+    people: List[str]
 
 
 @dataclass
@@ -38,6 +44,7 @@ class Solver:
     solvable: bool
     score: int
     day: int
+    history: List[History]
 
     def __init__(self, people: List[Person], projects: List[Project]):
         pass
@@ -60,26 +67,51 @@ class Solver:
             solvable=self.solvable,
             score=self.score,
             day=self.day,
+            prev=self
         )
 
-    def run(self) -> Solver:
+    def run(self) -> True:
 
+        number = 0
         best = None
-        for solving in self.next():
-            result = solving.run()
-            if best is None or result.score > best and result.solvable:
-                best = result
+        for project in self.get_projects():
+            for people in self.get_solvers(project):
+                result = self.solve(project, people)
 
-        if best is not None:
-            return best
+                if result.solvable and (best is None or result.score > best.score):
+                    best = result
 
-        self.solvable = False
-        return self
+        if best is None:
+            return self.next_day().run()
+
+        return best
+
+    def solve(self, project: Project, people: List[Person]):
+        solver = self.copy()
+        solver.projects.remove(project)
+        solver.progress.append(Progress(project=project, people=people, day=self.day))
+        solver.history.append(History(project=project.name, people=[person.name for person in people]))
+
+        return solver.run()
 
     def next_day(self) -> Solver:
         """ Probalbly obsolete """
 
-        return self.copy()
+        solving = self.copy()
+        solving.step += 1
+        solving.day += 1
+        remove = [
+            progress for progress in solving.progress
+            if progress.project.duration + progress.start >= solving.day
+        ]
+
+        # Todo: calcaulation is not acurate
+        for progress in remove:
+            solving.score += progress.project.score
+            # todo skill people
+
+        solving.progress = [progress for progress in solving.progress if progress not in remove]
+        return solving
 
     def next(self,) -> Solver:
         """ will pick up project and pepople """
@@ -104,3 +136,10 @@ class Solver:
 
     def get_free_people(self):
         pass
+
+
+"""
+A -> B -> C -> D -> E
+
+E.D.C.B.A
+"""
